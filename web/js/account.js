@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const keys = mlkemStorage.loadKeys();
-  const history = mlkemStorage.loadHistory();
+  const keys = window.mlkemStorage.loadKeys();
+  const history = window.mlkemStorage.loadHistory();
 
   const keysNode = document.getElementById("account-keys");
   const historyNode = document.getElementById("account-history");
@@ -11,8 +11,8 @@ document.addEventListener("DOMContentLoaded", () => {
     keysNode.textContent = JSON.stringify(
       {
         variant: keys.variant || "ML-KEM-768",
-        ek: keys.ek.slice(0, 40) + (keys.ek.length > 40 ? "…" : ""),
-        dk: keys.dk.slice(0, 40) + (keys.dk.length > 40 ? "…" : ""),
+        ek: keys.ek,
+        dk: keys.dk,
       },
       null,
       2,

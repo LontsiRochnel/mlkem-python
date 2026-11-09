@@ -1,193 +1,90 @@
 # mlkem-python
 
-Projet pédagogique Python pour illustrer le mécanisme d'encapsulation de clés ML-KEM, conforme dans l'esprit au standard NIST FIPS 203 (août 2024), sans prétendre être une implémentation de production auditable.
+Projet pédagogique pour illustrer ML-KEM, avec une interface web entièrement statique et un noyau JavaScript pur exécuté dans le navigateur.
 
-> AVERTISSEMENT : ce code est fourni à des fins d'enseignement et de recherche. Il n'a pas été audité, n'est pas examiné par un comité de sécurité, et ne doit pas être utilisé en production sans revue indépendante, tests de sécurité et validations de conformité complètes. En particulier, la clé privée `dk` ne doit jamais être envoyée à un serveur non protégé ; l'exposition HTTP de `decaps` est strictement pédagogique. Il n'y a ni TLS ni authentification et le serveur est sans état.
+> La version navigateur ne doit pas être utilisée pour protéger des données réelles. Le code est pédagogique, non audité, et ne garantit ni sécurité side-channel ni temps constant. Pour un usage réel, utiliser une bibliothèque auditée comme @noble/post-quantum ou liboqs.
 
-## Objectif
+## Fonctionnement
 
-Le module `mlkem` expose une API publique simple permettant à Alice et Bob d'utiliser ML-KEM via des fonctions lisibles et documentées :
+- Le calcul ML-KEM se fait dans le navigateur via les modules de [web/js/mlkem](web/js/mlkem).
+- Le fichier [web/js/api.js](web/js/api.js) appelle directement les fonctions JavaScript, sans `fetch`, `XMLHttpRequest` ni WebSocket.
+- Le serveur Python ne sert que les fichiers statiques du dossier [web](web) en local.
+- Les routes `/v1/*` restent disponibles pour les tests Python, mais la page web ne les utilise plus.
 
-- `keygen(variant="ML-KEM-768")`
-- `encaps(ek, variant=None)`
-- `decaps(dk, c, variant=None)`
-
-La structure est pensée pour être didactique : les étapes de K-PKE puis de ML-KEM sont séparées, avec des docstrings détaillées et un code orienté vers la pédagogie.
-
-## Installation
+### Démarrage local
 
 ```bash
-cd mlkem-python
-python -m pip install -e .
-```
-
-## Utilisation rapide
-
-```python
-from mlkem import keygen, encaps, decaps
-
-# Bob génère ses clés
-ek, dk = keygen("ML-KEM-768")
-
-# Alice encapsule le secret partagé pour Bob
-K_a, c = encaps(ek, "ML-KEM-768")
-
-# Bob découpe le secret partagé
-K_b = decaps(dk, c, "ML-KEM-768")
-
-print(K_a == K_b)
-```
-
-Le script `examples/alice_bob.py` montre le même scénario complet avec messages simples entre Alice et Bob.
-
-## Exécution de l'exemple
-
-```bash
-cd mlkem-python
-python examples/alice_bob.py
-```
-
-## Serveur HTTP
-
-Le projet expose une API HTTP simple via le module [mlkem/server.py](mlkem/server.py). Le serveur est sans état, ne conserve aucune clé entre deux requêtes, et n'implémente ni TLS ni authentification.
-
-### Lancement
-
-```bash
-cd mlkem-python
+cd "/Users/lontsirochnel/Desktop/LaTex/Rapport SI/mlkem-python"
 python -m mlkem --host 127.0.0.1 --port 8000
 ```
 
-ou via le point d'entrée console :
-
-```bash
-cd mlkem-python
-mlkem-server --host 127.0.0.1 --port 8000
-```
-
-> Si l'utilisateur choisit `0.0.0.0`, le serveur affiche un avertissement explicite car il écoute sur toutes les interfaces réseau. Ce mode est uniquement utile pour du test local, pas pour un déploiement réel.
-
-### Routes
-
-| Méthode | Route        | Description                       | Exemple curl                                                                                                                          |
-| ------- | ------------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| GET     | `/health`    | Vérifie que le service répond     | `curl http://127.0.0.1:8000/health`                                                                                                   |
-| GET     | `/v1/params` | Retourne les variantes et tailles | `curl http://127.0.0.1:8000/v1/params`                                                                                                |
-| POST    | `/v1/keygen` | Génère `ek` et `dk`               | `curl -X POST -H 'Content-Type: application/json' -d '{"variant":"ML-KEM-768"}' http://127.0.0.1:8000/v1/keygen`                      |
-| POST    | `/v1/encaps` | Encapsule depuis `ek`             | `curl -X POST -H 'Content-Type: application/json' -d '{"ek":"...","variant":"ML-KEM-768"}' http://127.0.0.1:8000/v1/encaps`           |
-| POST    | `/v1/decaps` | Décapsule depuis `dk` et `c`      | `curl -X POST -H 'Content-Type: application/json' -d '{"dk":"...","c":"...","variant":"ML-KEM-768"}' http://127.0.0.1:8000/v1/decaps` |
-
-### Exemple de réponses
-
-```json
-{ "status": "ok" }
-```
-
-```json
-{ "ek": "...", "dk": "..." }
-```
-
-```json
-{ "K": "...", "c": "..." }
-```
-
-## Client HTTP
-
-Le script [examples/client_http.py](examples/client_http.py) montre un scénario complet Alice/Bob en passant par le serveur HTTP local.
-
-```bash
-cd mlkem-python
-python examples/client_http.py
-```
-
-Le client appelle :
-
-1. `POST /v1/keygen` côté Bob
-2. `POST /v1/encaps` côté Alice
-3. `POST /v1/decaps` côté Bob
-4. vérifie que `K_A == K_B`
-
-## Interface web
-
-Une interface web pédagogique est aussi disponible dans le dossier [web](web). Pour la lancer :
-
-```bash
-cd mlkem-python
-python -m mlkem --host 127.0.0.1 --port 8000
-```
-
-Puis ouvrez dans un navigateur :
+Puis ouvrir dans le navigateur :
 
 ```text
 http://127.0.0.1:8000
 ```
 
-L'interface propose :
+### Vérification réseau
 
-- génération de clés ML-KEM,
-- sauvegarde dans `sessionStorage`,
-- encapsulation d'un secret pour une clé publique,
-- décapsulation d'un texte reçu,
-- consultation des clés et de l'historique dans la page « Mes infos ».
+1. Ouvrir les outils de développement.
+2. Aller dans l’onglet Réseau.
+3. Effectuer une génération de clés, une encapsulation ou une décapsulation.
+4. Aucune requête réseau ne doit apparaître.
 
-> La session est perdue à la fermeture de l'onglet. Cette interface est pédagogique et ne doit pas être utilisée pour stocker de vraies clés privées.
+## Vérification
 
-## Déploiement
-
-### Construction et lancement local avec Docker
+La conformité croisée est vérifiée avec les vecteurs Python générés dans [tests/js/fixtures.json](tests/js/fixtures.json).
 
 ```bash
-docker build -t mlkem-python .
-docker run --rm -p 8000:8000 mlkem-python
-```
-
-Le service est alors disponible sur :
-
-```text
-http://127.0.0.1:8000/healthz
-```
-
-### Déploiement distant
-
-L'HTTPS est fourni par l'hébergeur. Ne pas exposer directement le port sans TLS. Les services web d'hébergement modernes terminent le TLS à l'entrée et transmettent ensuite les requêtes au conteneur en interne.
-
-> Attention : sur un serveur distant, la clé privée `dk` et le secret partagé `K` transitent par l'hébergeur. Ce projet est pédagogique et ne doit pas être utilisé pour protéger des données réelles.
-
-### Recommandation de sécurité
-
-Pour un usage réel, le calcul ML-KEM doit être effectué dans le navigateur ou sur la machine de l'utilisateur, et la clé privée ne doit jamais quitter son appareil. Le serveur ne doit être utilisé qu'à des fins de démonstration ou de test pédagogique.
-
-## Lancement des tests
-
-```bash
-cd mlkem-python
+cd "/Users/lontsirochnel/Desktop/LaTex/Rapport SI/mlkem-python"
+python tests/js/generate_fixtures.py
+node --test tests/js/
 python -m pytest
 ```
 
+## Tests
+
+```bash
+cd "/Users/lontsirochnel/Desktop/LaTex/Rapport SI/mlkem-python"
+node --test tests/js/
+python -m pytest
+```
+
+## Déploiement Render
+
+Le site est statique. Le fichier [render.yaml](render.yaml) pointe vers le dossier [web](web) et applique des en-têtes de sécurité :
+
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+
+### Procédure
+
+1. Créer un service Render de type `static`.
+2. Définir `staticPublishPath: web`.
+3. Déployer le dépôt GitHub.
+4. Vérifier que la page s’affiche sans appel réseau.
+
+## Limites
+
+- Implémentation pédagogique, non auditée.
+- Le code pur JavaScript n’offre pas de garantie de temps constant ou de résistance à des attaques par canaux auxiliaires.
+- Pour un usage réel, utiliser une bibliothèque auditée comme @noble/post-quantum ou liboqs.
+
 ## Correspondance FIPS 203
 
-| Fonction / module                | Algorithme                  | Section / référence                          |
-| -------------------------------- | --------------------------- | -------------------------------------------- |
-| `mlkem.kem.ML-KEM.KeyGen`        | ML-KEM.KeyGen               | Algorithme ML-KEM.KeyGen, TODO(verifier)     |
-| `mlkem.kem.ML-KEM.Encaps`        | ML-KEM.Encaps               | Algorithme ML-KEM.Encaps, TODO(verifier)     |
-| `mlkem.kem.ML-KEM.Decaps`        | ML-KEM.Decaps               | Algorithme ML-KEM.Decaps, TODO(verifier)     |
-| `mlkem.kpke.K-PKE.KeyGen`        | K-PKE.KeyGen                | Algorithme K-PKE.KeyGen, TODO(verifier)      |
-| `mlkem.kpke.K-PKE.Encrypt`       | K-PKE.Encrypt               | Algorithme K-PKE.Encrypt, TODO(verifier)     |
-| `mlkem.kpke.K-PKE.Decrypt`       | K-PKE.Decrypt               | Algorithme K-PKE.Decrypt, TODO(verifier)     |
-| `mlkem.encoding.ByteEncode_d`    | Encodage de polynômes       | FIPS 203, encodage de coefficients et octets |
-| `mlkem.encoding.ByteDecode_d`    | Décodage de polynômes       | FIPS 203, décodage de coefficients et octets |
-| `mlkem.encoding.Compress_d`      | Compression / décompression | FIPS 203, compression des coefficients       |
-| `mlkem.encoding.Decompress_d`    | Compression / décompression | FIPS 203, décompression des coefficients     |
-| `mlkem.sampling.SampleNTT`       | Échantillonnage NTT         | FIPS 203, génération de polynômes étendu     |
-| `mlkem.sampling.SamplePolyCBD_η` | CBD                         | FIPS 203, échantillonnage de bruit           |
-| `mlkem.sampling.PRF`             | PRF                         | FIPS 203, fonction de dérivation             |
-
-> Les vecteurs KAT officiels ACVP / NIST ne sont pas inclus dans ce dépôt. À ajouter plus tard pour validation de conformité exhaustive.
-
-## Références
-
-- National Institute of Standards and Technology (NIST), FIPS 203, Module-Lattice-Based Key-Encapsulation Mechanism Standard, août 2024.
-- Bos, J., Ducas, L., Kiltz, E., Lepoint, T., Lyubashevsky, V., Schanck, J. M., Schwabe, P., Seiler, G. et Stehlé, D. (2018). CRYSTALS-Kyber: a CCA-secure module-lattice-based KEM.
+- Algorithme ML-KEM.KeyGen, TODO(verifier)
+- Algorithme ML-KEM.Encaps, section 6.2, TODO(verifier)
+- Algorithme ML-KEM.Decaps, TODO(verifier)
+- Algorithme K-PKE.KeyGen, TODO(verifier)
+- Algorithme K-PKE.Encrypt, TODO(verifier)
+- Algorithme K-PKE.Decrypt, TODO(verifier)
+- ByteEncode_d, TODO(verifier)
+- ByteDecode_d, TODO(verifier)
+- Compress_d, TODO(verifier)
+- Decompress_d, TODO(verifier)
+- SampleNTT, TODO(verifier)
+- SamplePolyCBD_eta, TODO(verifier)
+- PRF, TODO(verifier)
 
 ## Licence
 

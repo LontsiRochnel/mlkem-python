@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'none'; img-src 'self' data:; style-src 'self'; script-src 'self'" />
     <title>Accueil | ML-KEM</title>
     <link rel="stylesheet" href="/css/style.css" />
   </head>
@@ -16,7 +17,10 @@
         <a href="/account.html" class="top-link account-button">Account</a>
       </header>
 
-      <section class="warning-banner">Ce serveur est pédagogique. Vos clés transitent par lui. Ne l'utilisez pas pour protéger des données réelles.</section>
+      <section class="warning-banner">
+        Tout le calcul se fait dans votre navigateur. Aucune clé ni aucun secret ne quitte votre appareil. La session est effacée à la fermeture de l'onglet.
+        Cette page reste pédagogique : n'y stockez pas de clés réelles, car sessionStorage n'est pas chiffré.
+      </section>
 
       <section class="hero-panel panel">
         <h2>Que souhaitez-vous faire ?</h2>

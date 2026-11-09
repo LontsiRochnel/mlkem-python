@@ -5,7 +5,15 @@ encapsuler un secret partagé et le décapsuler selon le mécanisme ML-KEM.
 """
 
 from .errors import InvalidCiphertextError, InvalidKeyError, InvalidSizeError
-from .kem import ML_KEM_1024, ML_KEM_512, ML_KEM_768, ML_KEM, MLKEMParams
+from .kem import (
+    ML_KEM_1024,
+    ML_KEM_512,
+    ML_KEM_768,
+    ML_KEM,
+    MLKEMParams,
+    keygen_internal,
+    encaps_internal,
+)
 from .params import (
     CT_SIZE,
     DK_SIZE,
@@ -32,6 +40,8 @@ __all__ = [
     "InvalidSizeError",
     "InvalidKeyError",
     "InvalidCiphertextError",
+    "keygen_internal",
+    "encaps_internal",
 ]
 
 

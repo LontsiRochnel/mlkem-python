@@ -39,8 +39,8 @@ function renderHistory(history) {
 }
 
 function syncFromStorage() {
-  const keys = mlkemStorage.loadKeys();
-  const history = mlkemStorage.loadHistory();
+  const keys = window.mlkemStorage.loadKeys();
+  const history = window.mlkemStorage.loadHistory();
   const publicKey = document.getElementById("public-key");
   const privateKey = document.getElementById("private-key");
   const encapsPub = document.getElementById("encaps-pubkey");

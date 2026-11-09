@@ -1,49 +1,34 @@
-async function fetchJson(url, options = {}) {
-  const response = await fetch(url, options);
-  const text = await response.text();
-  let payload = {};
-  if (text) {
-    try {
-      payload = JSON.parse(text);
-    } catch (error) {
-      payload = { error: text };
-    }
-  }
-
-  if (!response.ok) {
-    const message = payload.error || payload.message || "Erreur serveur";
-    throw new Error(message);
-  }
-
-  return payload;
-}
+import { DEFAULT_VARIANT, keygen, encaps, decaps, getVariantParams } from "./mlkem/index.js";
 
 const mlkemApi = {
   async params() {
-    return fetchJson("/v1/params");
+    const variants = {};
+    for (const [name, params] of Object.entries(
+      getVariantParams("ML-KEM-768")
+        ? {
+            "ML-KEM-512": getVariantParams("ML-KEM-512"),
+            "ML-KEM-768": getVariantParams("ML-KEM-768"),
+            "ML-KEM-1024": getVariantParams("ML-KEM-1024"),
+          }
+        : {},
+    )) {
+      variants[name] = params;
+    }
+    return variants;
   },
 
-  async keygen(variant = "ML-KEM-768") {
-    return fetchJson("/v1/keygen", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ variant }),
-    });
+  async keygen(variant = DEFAULT_VARIANT) {
+    return keygen(variant);
   },
 
-  async encaps(ek, variant = "ML-KEM-768") {
-    return fetchJson("/v1/encaps", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ek, variant }),
-    });
+  async encaps(ek, variant = DEFAULT_VARIANT) {
+    return encaps(ek, variant);
   },
 
-  async decaps(dk, c, variant = "ML-KEM-768") {
-    return fetchJson("/v1/decaps", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dk, c, variant }),
-    });
+  async decaps(dk, c, variant = DEFAULT_VARIANT) {
+    return decaps(dk, c, variant);
   },
 };
+
+window.mlkemApi = mlkemApi;
+window.mlkem = { ...mlkemApi };

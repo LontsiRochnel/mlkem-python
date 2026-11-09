@@ -44,3 +44,5 @@ const mlkemStorage = (() => {
     saveHistory,
   };
 })();
+
+window.mlkemStorage = mlkemStorage;
