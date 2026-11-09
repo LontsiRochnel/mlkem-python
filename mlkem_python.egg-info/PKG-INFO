@@ -1,0 +1,97 @@
+Metadata-Version: 2.4
+Name: mlkem-python
+Version: 0.1.0
+Summary: Projet pédagogique d'implémentation de ML-KEM en Python
+Author: Projet pédagogique
+License: MIT
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Dynamic: license-file
+
+# mlkem-python
+
+Projet pédagogique Python pour illustrer le mécanisme d'encapsulation de clés ML-KEM, conforme dans l'esprit au standard NIST FIPS 203 (août 2024), sans prétendre être une implémentation de production auditable.
+
+> AVERTISSEMENT : ce code est fourni à des fins d'enseignement et de recherche. Il n'a pas été audité, n'est pas examiné par un comité de sécurité, et ne doit pas être utilisé en production sans revue indépendante, tests de sécurité et validations de conformité complètes.
+
+## Objectif
+
+Le module `mlkem` expose une API publique simple permettant à Alice et Bob d'utiliser ML-KEM via des fonctions lisibles et documentées :
+
+- `keygen(variant="ML-KEM-768")`
+- `encaps(ek, variant=None)`
+- `decaps(dk, c, variant=None)`
+
+La structure est pensée pour être didactique : les étapes de K-PKE puis de ML-KEM sont séparées, avec des docstrings détaillées et un code orienté vers la pédagogie.
+
+## Installation
+
+```bash
+cd mlkem-python
+python -m pip install -e .
+```
+
+## Utilisation rapide
+
+```python
+from mlkem import keygen, encaps, decaps
+
+# Bob génère ses clés
+ek, dk = keygen("ML-KEM-768")
+
+# Alice encapsule le secret partagé pour Bob
+K_a, c = encaps(ek, "ML-KEM-768")
+
+# Bob découpe le secret partagé
+K_b = decaps(dk, c, "ML-KEM-768")
+
+print(K_a == K_b)
+```
+
+Le script `examples/alice_bob.py` montre le même scénario complet avec messages simples entre Alice et Bob.
+
+## Exécution de l'exemple
+
+```bash
+cd mlkem-python
+python examples/alice_bob.py
+```
+
+## Lancement des tests
+
+```bash
+cd mlkem-python
+python -m pytest
+```
+
+## Correspondance FIPS 203
+
+| Fonction / module | Algorithme | Section / référence |
+| --- | --- | --- |
+| `mlkem.kem.ML-KEM.KeyGen` | ML-KEM.KeyGen | Algorithme ML-KEM.KeyGen, TODO(verifier) |
+| `mlkem.kem.ML-KEM.Encaps` | ML-KEM.Encaps | Algorithme ML-KEM.Encaps, TODO(verifier) |
+| `mlkem.kem.ML-KEM.Decaps` | ML-KEM.Decaps | Algorithme ML-KEM.Decaps, TODO(verifier) |
+| `mlkem.kpke.K-PKE.KeyGen` | K-PKE.KeyGen | Algorithme K-PKE.KeyGen, TODO(verifier) |
+| `mlkem.kpke.K-PKE.Encrypt` | K-PKE.Encrypt | Algorithme K-PKE.Encrypt, TODO(verifier) |
+| `mlkem.kpke.K-PKE.Decrypt` | K-PKE.Decrypt | Algorithme K-PKE.Decrypt, TODO(verifier) |
+| `mlkem.encoding.ByteEncode_d` | Encodage de polynômes | FIPS 203, encodage de coefficients et octets |
+| `mlkem.encoding.ByteDecode_d` | Décodage de polynômes | FIPS 203, décodage de coefficients et octets |
+| `mlkem.encoding.Compress_d` | Compression / décompression | FIPS 203, compression des coefficients |
+| `mlkem.encoding.Decompress_d` | Compression / décompression | FIPS 203, décompression des coefficients |
+| `mlkem.sampling.SampleNTT` | Échantillonnage NTT | FIPS 203, génération de polynômes étendu |
+| `mlkem.sampling.SamplePolyCBD_η` | CBD | FIPS 203, échantillonnage de bruit |
+| `mlkem.sampling.PRF` | PRF | FIPS 203, fonction de dérivation |
+
+> Les vecteurs KAT officiels ACVP / NIST ne sont pas inclus dans ce dépôt. À ajouter plus tard pour validation de conformité exhaustive.
+
+## Références
+
+- National Institute of Standards and Technology (NIST), FIPS 203, Module-Lattice-Based Key-Encapsulation Mechanism Standard, août 2024.
+- Bos, J., Ducas, L., Kiltz, E., Lepoint, T., Lyubashevsky, V., Schanck, J. M., Schwabe, P., Seiler, G. et Stehlé, D. (2018). CRYSTALS-Kyber: a CCA-secure module-lattice-based KEM.
+
+## Licence
+
+Ce projet est distribué sous la licence MIT. Voir [LICENSE](LICENSE).

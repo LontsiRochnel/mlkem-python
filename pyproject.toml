@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mlkem-python"
+version = "0.1.0"
+description = "Projet pédagogique d'implémentation de ML-KEM en Python"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Projet pédagogique" }]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+mlkem-server = "mlkem.server:main"
+
+[tool.setuptools]
+packages = ["mlkem"]

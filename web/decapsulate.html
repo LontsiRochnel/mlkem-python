@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Décapsuler | ML-KEM</title>
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <a href="/index.html" class="home-link">Accueil</a>
+        </div>
+        <a href="/account.html" class="top-link account-button">Account</a>
+      </header>
+
+      <section class="panel">
+        <h1>3. Décapsulation</h1>
+
+        <div class="field">
+          <label for="decaps-privkey">Clé privée Bob</label>
+          <textarea id="decaps-privkey" rows="6" placeholder="dk base64"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="decaps-ciphertext">Ciphertext reçu</label>
+          <textarea id="decaps-ciphertext" rows="6" placeholder="c base64"></textarea>
+        </div>
+
+        <div class="actions">
+          <button id="decapsulate">Décapsuler</button>
+        </div>
+
+        <div class="field">
+          <label for="shared-secret-b">Secret partagé (Bob)</label>
+          <textarea id="shared-secret-b" rows="4" placeholder="K_B"></textarea>
+        </div>
+
+        <div class="inline-actions">
+          <a href="/encapsulate.html" class="home-link">Retour</a>
+          <a href="/account.html" class="top-link">Account</a>
+        </div>
+      </section>
+    </main>
+
+    <script src="/js/base64.js"></script>
+    <script src="/js/storage.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/app.js"></script>
+  </body>
+</html>
