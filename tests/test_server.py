@@ -20,9 +20,11 @@ def _request_json(method: str, url: str, payload: dict | None = None):
     request = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
         with urllib.request.urlopen(request, timeout=10) as response:
-            return response.status, json.loads(response.read().decode("utf-8"))
+            body = response.read().decode("utf-8")
+            return response.status, response.headers, json.loads(body)
     except urllib.error.HTTPError as exc:
-        return exc.code, json.loads(exc.read().decode("utf-8"))
+        body = exc.read().decode("utf-8")
+        return exc.code, exc.headers, json.loads(body)
 
 
 def test_http_routes():
@@ -32,13 +34,19 @@ def test_http_routes():
     thread.start()
 
     try:
-        status, payload = _request_json(
+        status, headers, payload = _request_json(
             "GET", f"http://127.0.0.1:{server.server_address[1]}/health"
         )
         assert status == 200
         assert payload == {"status": "ok"}
 
-        status, payload = _request_json(
+        status, headers, payload = _request_json(
+            "GET", f"http://127.0.0.1:{server.server_address[1]}/healthz"
+        )
+        assert status == 200
+        assert payload == {"status": "ok"}
+
+        status, headers, payload = _request_json(
             "GET", f"http://127.0.0.1:{server.server_address[1]}/v1/params"
         )
         assert status == 200
@@ -52,6 +60,12 @@ def test_http_routes():
             assert response.status == 200
             assert "<html" in response.read().decode("utf-8").lower()
             assert response.headers.get_content_type() == "text/html"
+            assert (
+                response.headers.get("Content-Security-Policy") == "default-src 'self'"
+            )
+            assert response.headers.get("X-Content-Type-Options") == "nosniff"
+            assert response.headers.get("X-Frame-Options") == "DENY"
+            assert response.headers.get("Referrer-Policy") == "no-referrer"
 
         css_req = urllib.request.Request(
             f"http://127.0.0.1:{server.server_address[1]}/css/style.css", method="GET"
@@ -71,17 +85,22 @@ def test_http_routes():
         else:
             raise AssertionError("expected 404 for directory traversal attempt")
 
-        status, payload = _request_json(
+        status, headers, payload = _request_json(
             "POST",
             f"http://127.0.0.1:{server.server_address[1]}/v1/keygen",
             {"variant": "ML-KEM-768"},
         )
         assert status == 200
+        assert headers.get("Content-Security-Policy") == "default-src 'self'"
+        assert headers.get("X-Content-Type-Options") == "nosniff"
+        assert headers.get("X-Frame-Options") == "DENY"
+        assert headers.get("Referrer-Policy") == "no-referrer"
+        assert headers.get("Cache-Control") == "no-store"
         assert "ek" in payload and "dk" in payload
         ek_b64 = payload["ek"]
         dk_b64 = payload["dk"]
 
-        status, payload = _request_json(
+        status, headers, payload = _request_json(
             "POST",
             f"http://127.0.0.1:{server.server_address[1]}/v1/encaps",
             {"ek": ek_b64, "variant": "ML-KEM-768"},
@@ -90,7 +109,7 @@ def test_http_routes():
         assert "K" in payload and "c" in payload
         c_b64 = payload["c"]
 
-        status, payload = _request_json(
+        status, headers, payload = _request_json(
             "POST",
             f"http://127.0.0.1:{server.server_address[1]}/v1/decaps",
             {"dk": dk_b64, "c": c_b64, "variant": "ML-KEM-768"},
@@ -98,19 +117,19 @@ def test_http_routes():
         assert status == 200
         assert "K" in payload
 
-        status, payload = _request_json(
+        status, headers, payload = _request_json(
             "GET", f"http://127.0.0.1:{server.server_address[1]}/nope"
         )
         assert status == 404
         assert "error" in payload
 
-        status, payload = _request_json(
+        status, headers, payload = _request_json(
             "GET", f"http://127.0.0.1:{server.server_address[1]}/v1/keygen"
         )
         assert status == 405
         assert payload["type"] == "MethodNotAllowed"
 
-        status, payload = _request_json(
+        status, headers, payload = _request_json(
             "POST",
             f"http://127.0.0.1:{server.server_address[1]}/v1/encaps",
             {"ek": "%%%"},

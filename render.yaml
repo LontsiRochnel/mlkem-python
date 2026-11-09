@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: mlkem-python
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    envVars:
+      - key: MLKEM_HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 8000

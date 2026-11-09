@@ -132,6 +132,31 @@ L'interface propose :
 
 > La session est perdue à la fermeture de l'onglet. Cette interface est pédagogique et ne doit pas être utilisée pour stocker de vraies clés privées.
 
+## Déploiement
+
+### Construction et lancement local avec Docker
+
+```bash
+docker build -t mlkem-python .
+docker run --rm -p 8000:8000 mlkem-python
+```
+
+Le service est alors disponible sur :
+
+```text
+http://127.0.0.1:8000/healthz
+```
+
+### Déploiement distant
+
+L'HTTPS est fourni par l'hébergeur. Ne pas exposer directement le port sans TLS. Les services web d'hébergement modernes terminent le TLS à l'entrée et transmettent ensuite les requêtes au conteneur en interne.
+
+> Attention : sur un serveur distant, la clé privée `dk` et le secret partagé `K` transitent par l'hébergeur. Ce projet est pédagogique et ne doit pas être utilisé pour protéger des données réelles.
+
+### Recommandation de sécurité
+
+Pour un usage réel, le calcul ML-KEM doit être effectué dans le navigateur ou sur la machine de l'utilisateur, et la clé privée ne doit jamais quitter son appareil. Le serveur ne doit être utilisé qu'à des fins de démonstration ou de test pédagogique.
+
 ## Lancement des tests
 
 ```bash

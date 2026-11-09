@@ -16,6 +16,7 @@ import argparse
 import base64
 import json
 import logging
+import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -109,7 +110,7 @@ class MLKEMHTTPHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802
         """Traite une requête HTTP GET.
 
-        Routes supportées : `/health`, `/v1/params` et les fichiers statiques du
+        Routes supportées : `/health`, `/healthz`, `/v1/params` et les fichiers statiques du
         dossier `web/`. Les codes de succès sont 200. Les erreurs renvoient un
         objet JSON avec `error` et `type`.
         """
@@ -119,7 +120,7 @@ class MLKEMHTTPHandler(BaseHTTPRequestHandler):
                     405, "method not allowed", "MethodNotAllowed", allow="POST"
                 )
                 return
-            if self.path == "/health":
+            if self.path in {"/health", "/healthz"}:
                 self._send_json({"status": "ok"}, status_code=200)
                 return
             if self.path == "/v1/params":
@@ -233,12 +234,22 @@ class MLKEMHTTPHandler(BaseHTTPRequestHandler):
         code = args[1] if len(args) >= 2 else "-"
         LOGGER.info("%s %s -> %s", self.command, self.path, code)
 
+    def _set_security_headers(self, path: str) -> None:
+        """Ajoute les en-têtes de sécurité requis."""
+        self.send_header("Content-Security-Policy", "default-src 'self'")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "no-referrer")
+        if path.startswith("/v1/"):
+            self.send_header("Cache-Control", "no-store")
+
     def _send_json(self, payload: dict[str, Any], status_code: int) -> None:
         """Envoie un objet JSON avec le bon en-tête HTTP."""
         body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
         self.send_response(status_code)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
+        self._set_security_headers(self.path)
         self.end_headers()
         self.wfile.write(body)
 
@@ -255,6 +266,7 @@ class MLKEMHTTPHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(content)))
+        self._set_security_headers(self.path)
         self.end_headers()
         self.wfile.write(content)
 
@@ -273,6 +285,7 @@ class MLKEMHTTPHandler(BaseHTTPRequestHandler):
             self.send_header("Allow", allow)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
+        self._set_security_headers(self.path)
         self.end_headers()
         self.wfile.write(body)
 
@@ -346,20 +359,36 @@ def main(argv: list[str] | None = None) -> None:
     """
     parser = argparse.ArgumentParser(description="Serveur HTTP pédagogique pour ML-KEM")
     parser.add_argument(
-        "--host", default="127.0.0.1", help="hostname à écouter, par défaut 127.0.0.1"
+        "--host",
+        default=None,
+        help="hostname à écouter; priorité aux variables d'environnement MLKEM_HOST",
     )
     parser.add_argument(
-        "--port", type=int, default=8000, help="port TCP à écouter, par défaut 8000"
+        "--port",
+        type=int,
+        default=None,
+        help="port TCP à écouter; priorité aux variables d'environnement PORT",
     )
     args = parser.parse_args(argv)
 
-    if args.host == "0.0.0.0":
+    host = (
+        args.host
+        if args.host is not None
+        else os.environ.get("MLKEM_HOST", "127.0.0.1")
+    )
+    port_env = os.environ.get("PORT", "8000")
+    try:
+        port = args.port if args.port is not None else int(port_env)
+    except ValueError as exc:
+        raise SystemExit("PORT must be an integer") from exc
+
+    if host == "0.0.0.0":
         print(
-            "[WARNING] 0.0.0.0 binds the server on all network interfaces; this is only for local testing. No TLS or authentication is enabled."
+            "Serveur accessible à distance. Les clés privées transitent par ce serveur."
         )
 
-    server = create_server(args.host, args.port)
-    print(f"Serving ML-KEM on http://{args.host}:{args.port}")
+    server = create_server(host, port)
+    print(f"Serving ML-KEM on http://{host}:{port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
